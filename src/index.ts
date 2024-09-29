@@ -13,6 +13,7 @@ app.use(
         { name: "Supplier", description: "Supplier endpoint" },
         { name: "Receipt", description: "Reciept endpoint" },
         { name: "Quotation", description: "Quotation endpoint" },
+        { name: "DeliveryNote", description: "DeliveryNote endpoint" },
       ],
     },
   })
