@@ -1,6 +1,27 @@
 import { Elysia } from "elysia";
+import { swagger } from "@elysiajs/swagger";
+import supplier from "./supplier";
+import receipt from "./receipt";
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+const app = new Elysia();
+app.use(
+  swagger({
+    path: "/docs",
+    documentation: {
+      info: { title: "SA_DB Api Document", version: "1.0.0" },
+      tags: [
+        { name: "Supplier", description: "Supplier endpoint" },
+        { name: "Receipt", description: "Reciept endpoint" },
+        { name: "Quotation", description: "Quotation endpoint" },
+      ],
+    },
+  })
+);
+
+app.use(supplier);
+app.use(receipt);
+
+app.listen(3000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`

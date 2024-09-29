@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model receipt {
+  id           Int       @id @default(autoincrement())
+  receipt_date DateTime @db.Timestamp(6)
+  total_price  Float    @db.Real
+  tax_number   Decimal  @db.Decimal(13, 0)
+}
+
+model supplier {
+  supplier_id   Int         @id @default(autoincrement())
+  supplier_name String     @db.VarChar(80)
+  quotation     quotation[]
+}
+
+model quotation {
+  id            Int       @id @default(autoincrement())
+  unit          Int
+  price         Float     @db.Real
+  total_price   Float    @db.Real
+  factory_sign  String    @db.VarChar(80)
+  supplier_sign String?   @db.VarChar(80)
+  creation_date DateTime  @db.Timestamp(6)
+  accept_date   DateTime? @db.Timestamp(6)
+  status        status   @default(Considered)
+  supplier_id   Int
+  supplier      supplier  @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum status {
+  Accept
+  Reject
+  Considered
+}
