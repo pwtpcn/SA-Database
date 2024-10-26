@@ -211,7 +211,7 @@ app.put(
 
       const updateFields = updates.join(", ");
 
-      const updatedQuotation : any = await db.$executeRaw`
+      const updatedQuotation: any = await db.$executeRaw`
       UPDATE quotaion
       SET ${updateFields}
       WHERE id = ${body.id}
@@ -222,7 +222,7 @@ app.put(
       return updatedQuotation;
     } catch (error) {
       console.error("Error updateing quotation: ", error);
-      return { error: "Failed to update quotation"};
+      return { error: "Failed to update quotation" };
     }
   },
   {
@@ -245,8 +245,8 @@ app.delete(
   "/quotation/delete",
   async ({ body }) => {
     try {
-      const existingQuotation:any = await db.$queryRaw`
-        SELECT * FROM quotation WHERE id = ${body.id};
+      const existingQuotation: any = await db.$queryRaw`
+        SELECT id FROM quotation WHERE id = ${body.id};
       `;
 
       if (existingQuotation.length === 0) {
@@ -254,14 +254,17 @@ app.delete(
         return { message: "No record found with the given ID" };
       }
 
-      const deletedQuotation:any = await db.$executeRaw`
+      const deletedQuotation: any = await db.$executeRaw`
         DELETE FROM quotation
         WHERE id = ${body.id}
         RETURNING id;
       `;
 
       console.log("Quotation deleted successfully:", deletedQuotation);
-      return { message: "Quotation deleted successfully", id: deletedQuotation[0].quotation_id }; // Return the deleted quotation ID
+      return {
+        message: "Quotation deleted successfully",
+        id: deletedQuotation[0].quotation_id,
+      }; // Return the deleted quotation ID
     } catch (error) {
       console.error("Error deleting quotation: ", error);
       return { error: "Failed to delete quotation." };
@@ -276,6 +279,5 @@ app.delete(
     },
   }
 );
-
 
 export default app;
