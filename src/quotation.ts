@@ -143,7 +143,7 @@ app.post(
       RETURNING unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, status, supplier_id
       `;
 
-      console.log("Quotation inserted successfully", quotation);
+      console.log("Quotation inserted successfully: ", quotation);
       return { message: "Quotation inserted successfully", quotation };
     } catch (error) {
       console.error("Error inserting quotation: ", error);
