@@ -123,6 +123,15 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
+      const existingSupplier: any = await db.$queryRaw`
+        SELECT id FROM supplier WHERE supplier_id = ${body.supplier_id};
+      `;
+
+      if (existingSupplier.length === 0) {
+        console.log("No record found with the given ID to delete");
+        return { message: "No record found with the given ID" };
+      }
+      
       const updates = [];
 
       if (body.supplier_name !== undefined) {
@@ -142,13 +151,8 @@ app.put(
       RETURNING supplier_id, supplier_name, tax_number
       `;
 
-      if (updatedSupplier.length > 0) {
-        console.log("Supplier updated successfully:", updatedSupplier);
-        return updatedSupplier;
-      } else {
-        console.log("No record found with the given ID to update");
-        return { message: "No record found with the given ID" };
-      }
+      console.log("Supplier updated successfully:", updatedSupplier);
+      return updatedSupplier;
     } catch (error) {
       console.error("Error updating supplier: ", error);
       return { error: "Failed to update supplier" };
@@ -185,14 +189,14 @@ app.delete(
       RETURNING supplier_id
       `;
 
-      console.log("Record deleted successfully: ", deletedSupplier);
+      console.log("Supplier deleted successfully: ", deletedSupplier);
       return {
-        message: "Record deleted successfully",
+        message: "Supplier deleted successfully",
         supplier_id: deletedSupplier[0].supplier_id,
       };
     } catch (error) {
-      console.error("Error deleting record: ", error);
-      return { error: "Failed to delete record" };
+      console.error("Error deleting supplier: ", error);
+      return { error: "Failed to delete supplier" };
     }
   },
   {
