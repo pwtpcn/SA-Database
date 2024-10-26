@@ -260,7 +260,7 @@ app.delete(
         RETURNING id;
       `;
 
-      console.log("Quotation deleted successfully:", deletedQuotation);
+      console.log("Quotation deleted successfully: ", deletedQuotation);
       return {
         message: "Quotation deleted successfully",
         id: deletedQuotation[0].quotation_id,
