@@ -35,8 +35,8 @@ model quotation {
   supplier_sign String?         @db.VarChar(80)
   creation_date DateTime        @db.Timestamp(6)
   accept_date   DateTime?       @db.Timestamp(6)
-  status        QuotationStatus @default(Considered)
   supplier_id   Int
+  status        QuotationStatus @default(Considered)
   delivery_note delivery_note[]
   supplier      supplier        @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction)
 }
