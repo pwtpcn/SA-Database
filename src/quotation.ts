@@ -107,8 +107,10 @@ const app = new Elysia({ prefix: "/reciept" });
 // );
 
 // Raw Query //
-app.get("/get", async () => {
-  const quotationList = await db.$queryRaw`
+app.get(
+  "/get",
+  async () => {
+    const quotationList = await db.$queryRaw`
     SELECT id,
     unit,
     price,
@@ -120,8 +122,14 @@ app.get("/get", async () => {
     status,
     supplier_id
     FROM supplier`;
-  return quotationList;
-});
+    return quotationList;
+  },
+  {
+    detail: {
+      tags: ["Quotaion"],
+    },
+  }
+);
 
 app.post(
   "/post",
@@ -168,15 +176,6 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const existingQuotation: any = await db.$queryRaw`
-      SELECT id from quotaion WHERE id = ${body.id};
-      `;
-
-      if (existingQuotation.length === 0) {
-        console.log("No record found with the given ID to update");
-        return { message: "No record found with the given ID" };
-      }
-
       const updates = [];
       let totalPriceUpdate = false;
 
@@ -245,15 +244,6 @@ app.delete(
   "/quotation/delete",
   async ({ body }) => {
     try {
-      const existingQuotation: any = await db.$queryRaw`
-        SELECT id FROM quotation WHERE id = ${body.id};
-      `;
-
-      if (existingQuotation.length === 0) {
-        console.log("No record found with the given ID to delete");
-        return { message: "No record found with the given ID" };
-      }
-
       const deletedQuotation: any = await db.$executeRaw`
         DELETE FROM quotation
         WHERE id = ${body.id}
