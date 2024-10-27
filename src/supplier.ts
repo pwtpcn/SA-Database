@@ -79,14 +79,22 @@ const app = new Elysia({ prefix: "/supplier" });
 // );
 
 // Raw Query //
-app.get("/get", async () => {
-  const supplierList = await db.$queryRaw`
+app.get(
+  "/get",
+  async () => {
+    const supplierList = await db.$queryRaw`
     SELECT supplier_id,
     supplier_name,
     tax_number
     FROM supplier`;
-  return supplierList;
-});
+    return supplierList;
+  },
+  {
+    detail: {
+      tags: ["Supplier"],
+    },
+  }
+);
 
 app.post(
   "/post",
@@ -123,15 +131,6 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const existingSupplier: any = await db.$queryRaw`
-        SELECT id FROM supplier WHERE supplier_id = ${body.supplier_id};
-      `;
-
-      if (existingSupplier.length === 0) {
-        console.log("No record found with the given ID to delete");
-        return { message: "No record found with the given ID" };
-      }
-      
       const updates = [];
 
       if (body.supplier_name !== undefined) {
@@ -174,15 +173,6 @@ app.delete(
   "/delete",
   async ({ body }) => {
     try {
-      const existingSupplier: any = await db.$queryRaw`
-        SELECT id FROM supplier WHERE supplier_id = ${body.supplier_id};
-      `;
-
-      if (existingSupplier.length === 0) {
-        console.log("No record found with the given ID to delete");
-        return { message: "No record found with the given ID" };
-      }
-
       const deletedSupplier: any = await db.$queryRaw`
       DELETE FROM supplier
       WHERE supplier_id = ${body.supplier_id}
