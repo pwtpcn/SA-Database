@@ -106,7 +106,7 @@ app.post(
         ${body.supplier_name}, 
         ${body.tax_number}
         )
-      RETURNING supplier_name, tax_number
+      RETURNING supplier_id, supplier_name, tax_number
       `;
 
       console.log("Supplier inserted successfully: ", supplier);
@@ -182,7 +182,7 @@ app.delete(
       console.log("Supplier deleted successfully: ", deletedSupplier);
       return {
         message: "Supplier deleted successfully",
-        supplier_id: deletedSupplier[0].supplier_id,
+        supplier_id: deletedSupplier,
       };
     } catch (error) {
       console.error("Error deleting supplier: ", error);

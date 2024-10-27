@@ -147,15 +147,6 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const existingNote: any = await db.$queryRaw`
-        SELECT id FROM delivery_note WHERE id = ${body.id};
-      `;
-
-      if (existingNote.length === 0) {
-        console.log("No record found with the given ID to delete");
-        return { message: "No record found with the given ID" };
-      }
-
       const updates = [];
 
       if (body.quotation_id !== undefined) {

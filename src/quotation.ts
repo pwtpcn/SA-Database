@@ -136,19 +136,17 @@ app.post(
   async ({ body }) => {
     try {
       const quotation = await db.$queryRaw`
-      INSERT INTO quotation (unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, status, supplier_id)
+      INSERT INTO quotation (unit, price, total_price, factory_sign, creation_date, status, supplier_id)
       VALUES (
         ${body.unit}, 
         ${body.price},
         ${body.unit} * ${body.price}, -- total_price
         ${body.factory_sign},
-        NULL,
         NOW(), -- Current date time
-        NULL
         ${body.status},
         ${body.supplier_id}
         )
-      RETURNING unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, status, supplier_id
+      RETURNING id, unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, supplier_id, status
       `;
 
       console.log("Quotation inserted successfully: ", quotation);
@@ -214,7 +212,7 @@ app.put(
       UPDATE quotaion
       SET ${updateFields}
       WHERE id = ${body.id}
-      RETURNING unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, status, supplier_id
+      RETURNING id, unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, supplier_id, status
       `;
 
       console.log("Quotation updated successfully: ", updatedQuotation);
@@ -253,8 +251,8 @@ app.delete(
       console.log("Quotation deleted successfully: ", deletedQuotation);
       return {
         message: "Quotation deleted successfully",
-        id: deletedQuotation[0].quotation_id,
-      }; // Return the deleted quotation ID
+        id: deletedQuotation,
+      };
     } catch (error) {
       console.error("Error deleting quotation: ", error);
       return { error: "Failed to delete quotation." };
