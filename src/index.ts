@@ -2,6 +2,9 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import supplier from "./supplier";
 import receipt from "./receipt";
+import quotation from "./quotation";
+import user from "./user";
+import delivery_note from "./delivery_note";
 
 const app = new Elysia();
 app.use(
@@ -22,6 +25,9 @@ app.use(
 
 app.use(supplier);
 app.use(receipt);
+app.use(quotation);
+app.use(user);
+app.use(delivery_note);
 
 app.listen(3000);
 
