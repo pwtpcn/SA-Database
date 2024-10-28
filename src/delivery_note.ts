@@ -211,7 +211,7 @@ app.put(
 );
 
 app.delete(
-  "/quotation/delete",
+  "/delete",
   async ({ body }) => {
     try {
       const deletedNote: any = await db.$executeRaw`

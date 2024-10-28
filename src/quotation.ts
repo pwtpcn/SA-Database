@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import db from "./db";
 import { QuotationStatus } from "@prisma/client";
 
-const app = new Elysia({ prefix: "/reciept" });
+const app = new Elysia({ prefix: "/quotation" });
 
 // app.get(
 //   "/get",
@@ -239,7 +239,7 @@ app.put(
 );
 
 app.delete(
-  "/quotation/delete",
+  "/delete",
   async ({ body }) => {
     try {
       const deletedQuotation: any = await db.$executeRaw`
