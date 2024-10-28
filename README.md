@@ -1,12 +1,11 @@
 # Elysia with Bun runtime
 
 ## Getting Started
-To get started with this template, simply paste this command into your terminal:
+To get started with this template install Prisma extension in your VS Code
+then paste this command into your terminal:
 ```bash
 bun install
 ```
-## Install Prisma extension in your VS Code
-
 ## Development
 To start the development server run:
 ```bash
