@@ -14,6 +14,7 @@ app.use(
         { name: "Receipt", description: "Reciept endpoint" },
         { name: "Quotation", description: "Quotation endpoint" },
         { name: "DeliveryNote", description: "DeliveryNote endpoint" },
+        { name: "User", description: "User endpoint" },
       ],
     },
   })

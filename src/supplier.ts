@@ -85,7 +85,8 @@ app.get(
     const supplierList = await db.$queryRaw`
     SELECT supplier_id,
     supplier_name,
-    tax_number
+    tax_number,
+    user_id
     FROM supplier`;
     return supplierList;
   },
@@ -101,12 +102,13 @@ app.post(
   async ({ body }) => {
     try {
       const supplier = await db.$queryRaw`
-      INSERT INTO supplier (supplier_name, tax_number)
+      INSERT INTO supplier (supplier_name, tax_number, user_id)
       VALUES (
         ${body.supplier_name}, 
-        ${body.tax_number}
+        ${body.tax_number},
+        ${body.user_id}
         )
-      RETURNING supplier_id, supplier_name, tax_number
+      RETURNING supplier_id, supplier_name, tax_number, user_id
       `;
 
       console.log("Supplier inserted successfully: ", supplier);
@@ -120,6 +122,7 @@ app.post(
     body: t.Object({
       supplier_name: t.String(),
       tax_number: t.Number(),
+      user_id: t.String()
     }),
     detail: {
       tags: ["Supplier"],
@@ -141,13 +144,17 @@ app.put(
         updates.push(`tax_number = ${body.tax_number}`);
       }
 
+      if (body.user_id !== undefined) {
+        updates.push(`user_id = ${body.user_id}`);
+      }
+
       const updateFields = updates.join(", ");
 
       const updatedSupplier: any = await db.$executeRaw`
       UPDATE supplier
       SET ${updateFields}
       WHERE supplier_id = ${body.supplier_id}
-      RETURNING supplier_id, supplier_name, tax_number
+      RETURNING supplier_id, supplier_name, tax_number, user_id
       `;
 
       console.log("Supplier updated successfully:", updatedSupplier);
@@ -162,6 +169,7 @@ app.put(
       supplier_id: t.Number(),
       supplier_name: t.Optional(t.String()),
       tax_number: t.Optional(t.Number()),
+      user_id: t.Optional(t.String())
     }),
     detail: {
       tags: ["Supplier"],
