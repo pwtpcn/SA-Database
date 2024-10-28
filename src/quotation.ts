@@ -126,7 +126,7 @@ app.get(
   },
   {
     detail: {
-      tags: ["Quotaion"],
+      tags: ["Quotation"],
     },
   }
 );
@@ -165,7 +165,7 @@ app.post(
       supplier_id: t.Number(),
     }),
     detail: {
-      tags: ["Quotaion"],
+      tags: ["Quotation"],
     },
   }
 );
@@ -233,7 +233,7 @@ app.put(
       status: t.Optional(t.Enum(QuotationStatus)),
     }),
     detail: {
-      tags: ["Quotaion"],
+      tags: ["Quotation"],
     },
   }
 );
