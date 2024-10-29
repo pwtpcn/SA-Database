@@ -1,127 +1,25 @@
 import { Elysia, t } from "elysia";
 import db from "./db";
-import { QuotationStatus } from "@prisma/client";
+import { Prisma, quotation, QuotationStatus } from "@prisma/client";
 
 const app = new Elysia({ prefix: "/quotation" });
 
-// app.get(
-//   "/get",
-//   async () => {
-//     const quotationList = await db.quotation.findMany();
-//     return quotationList;
-//   },
-//   {
-//     detail: {
-//       tags: ["Quotation"],
-//     },
-//   }
-// );
-
-// app.post(
-//   "/post",
-//   async ({ body }) => {
-//     const quotation = await db.quotation.create({
-//       data: body,
-//     });
-//     return quotation;
-//   },
-//   {
-//     body: t.Object({
-//       unit: t.Integer({
-//         minimum: 0,
-//       }),
-//       price: t.Number({
-//         minimum: 0,
-//       }),
-//       total_price: t.Number({
-//         minimum: 0,
-//       }),
-//       factory_sign: t.String(),
-//       // supplier_sign: t.Optional(t.String()),
-//       creation_date: t.Date(),
-//       supplier_id: t.Number(),
-//       status: t.Enum(status),
-//     }),
-//     detail: {
-//       tags: ["Quotation"],
-//     },
-//   }
-// );
-
-// app.put(
-//   "/put",
-//   async ({ body }) => {
-//     const quotation = await db.quotation.update({
-//       where: {
-//         id: body.id,
-//       },
-//       data: body,
-//     });
-//     return quotation;
-//   },
-//   {
-//     body: t.Object({
-//       id: t.Number(),
-//       unit: t.Optional(
-//         t.Integer({
-//           minimum: 0,
-//         })
-//       ),
-//       price: t.Optional(
-//         t.Number({
-//           minimum: 0,
-//         })
-//       ),
-//       total_price: t.Optional(
-//         t.Number({
-//           minimum: 0,
-//         })
-//       ),
-//       factory_sign: t.Optional(t.String()),
-//       supplier_sign: t.Optional(t.String()),
-//       creation_date: t.Optional(t.Date()),
-//       supplier_id: t.Optional(t.Number()),
-//       status: t.Optional(t.Enum(status)),
-//     }),
-//   }
-// );
-
-// app.delete(
-//   "/delete",
-//   async ({ body }) => {
-//     const quotation = await db.quotation.delete({
-//       where: {
-//         id: body.id,
-//       },
-//     });
-//     return quotation;
-//   },
-//   {
-//     body: t.Object({
-//       id: t.Number(),
-//     }),
-//     detail: {
-//       tags: ["Quotation"],
-//     },
-//   }
-// );
-
 // Raw Query //
 app.get(
-  "/get",
+  "/getAllQuotation",
   async () => {
     const quotationList = await db.$queryRaw`
-    SELECT id,
-    unit,
-    price,
-    total_price,
-    factory_sign,
-    supplier_sign,
-    creation_date,
-    accept_date,
-    status,
-    supplier_id
-    FROM supplier`;
+    SELECT "id",
+    "unit",
+    "price",
+    "total_price",
+    "factory_sign",
+    "supplier_sign",
+    "creation_date",
+    "accept_date",
+    "status",
+    "supplier_id"
+    FROM "quotation"`;
     return quotationList;
   },
   {
@@ -132,25 +30,62 @@ app.get(
 );
 
 app.post(
+  "/getByID",
+  async ({ body }) => {
+    try {
+      const selectedQuotation: any = await db.$queryRaw`
+    SELECT "id",
+    "unit",
+    "price",
+    "total_price",
+    "factory_sign",
+    "supplier_sign",
+    "creation_date",
+    "accept_date",
+    "status",
+    "supplier_id"
+    FROM "quotation"
+    WHERE "id" = ${body.id}
+    LIMIT 1
+    `;
+
+      console.log("Get quotation successfully: ", selectedQuotation[0]);
+      return selectedQuotation[0];
+    } catch (error) {
+      console.error("Error getting quotation by ID: ", error);
+      return { error: "Fail to get quotation by ID" };
+    }
+  },
+  {
+    body: t.Object({
+      id: t.Number(),
+    }),
+    detail: {
+      tags: ["Quotation"],
+    },
+  }
+);
+
+app.post(
   "/post",
   async ({ body }) => {
     try {
-      const quotation = await db.$queryRaw`
-      INSERT INTO quotation (unit, price, total_price, factory_sign, creation_date, status, supplier_id)
+      const insertedQuotation = await db.$queryRaw`
+      INSERT INTO "quotation" ("unit", "price", "total_price", "factory_sign", "creation_date", "status", "supplier_id")
       VALUES (
         ${body.unit}, 
         ${body.price},
         ${body.unit} * ${body.price}, -- total_price
         ${body.factory_sign},
-        NOW(), -- Current date time
-        ${body.status},
+        NOW() AT TIME ZONE 'Asia/Bangkok', -- Current date time
+        ${Prisma.sql`${body.status}::"QuotationStatus"`},
         ${body.supplier_id}
         )
-      RETURNING id, unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, supplier_id, status
+      RETURNING "id", "unit", "price", "total_price", "factory_sign", "supplier_sign", "creation_date", "accept_date", "supplier_id", "status"
       `;
 
-      console.log("Quotation inserted successfully: ", quotation);
-      return { message: "Quotation inserted successfully", quotation };
+      console.log("Quotation inserted successfully: ", insertedQuotation);
+      return { message: "Quotation inserted successfully", insertedQuotation };
     } catch (error) {
       console.error("Error inserting quotation: ", error);
       return { error: "Failed to insert quotation" };
@@ -174,49 +109,50 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const updates = [];
-      let totalPriceUpdate = false;
-
-      if (body.unit !== undefined) {
-        updates.push(`unit = ${body.unit}`);
-        totalPriceUpdate = true;
-      }
-      if (body.price !== undefined) {
-        updates.push(`price = ${body.price}`);
-        totalPriceUpdate = true;
-      }
-      if (body.factory_sign !== undefined) {
-        updates.push(`factory_sign = ${body.factory_sign}`);
-      }
-      if (body.supplier_sign !== undefined) {
-        updates.push(`supplier_sign = ${body.supplier_sign}`);
-      }
-      if (body.status !== undefined) {
-        updates.push(`status = ${body.status}`);
-      }
-      if (body.accept_date !== undefined) {
-        updates.push(`accept_date = ${body.accept_date}`);
+      interface Quotation {
+        unit: number,
+        price: number,
+        total_price: number,
+        factory_sign: string,
+        supplier_sign: string,
+        creation_date: Date,
+        accept_date: Date,
+        supplier_id: number,
+        status: QuotationStatus
       }
 
-      if (updates.length === 0) {
-        return { error: "No fields to update" };
+      const quotationList: Quotation[] = await db.$queryRaw`
+      SELECT "unit", "price", "total_price", "factory_sign", "supplier_sign", "creation_date", "accept_date", "supplier_id", "status"
+      FROM "quotation"
+      WHERE "id" = ${body.id}
+      LIMIT 1
+      `;
+      const quotation = quotationList[0];
+
+      let total_price = 0;
+      if(body.unit !== undefined && body.price !== undefined) {
+        total_price = body.unit * body.price;
+      } else if(body.unit !== undefined && body.price === undefined) {
+        total_price = body.unit * quotation.price;
+      } else if(body.unit === undefined && body.price !== undefined) {
+        total_price = quotation.unit * body.price;
       }
 
-      if (totalPriceUpdate) {
-        updates.push(`total_price = ${body.unit} * ${body.price}`);
-      }
-
-      const updateFields = updates.join(", ");
-
-      const updatedQuotation: any = await db.$executeRaw`
-      UPDATE quotaion
-      SET ${updateFields}
-      WHERE id = ${body.id}
-      RETURNING id, unit, price, total_price, factory_sign, supplier_sign, creation_date, accept_date, supplier_id, status
+      const updatedQuotation: any = await db.$queryRaw`
+      UPDATE "quotation"
+      SET "unit" = ${body.unit || quotation.unit},
+      "price" = ${body.price || quotation.price},
+      "total_price" = ${total_price},
+      "factory_sign" = ${body.factory_sign || quotation.factory_sign},
+      "supplier_sign" = ${body.supplier_sign || quotation.supplier_sign},
+      "accept_date" = ${body.accept_date || quotation.accept_date},
+      "status" = ${Prisma.sql`${body.status || quotation.status}::"QuotationStatus"`}
+      WHERE "id" = ${body.id}
+      RETURNING "id", "unit", "price", "total_price", "factory_sign", "supplier_sign", "creation_date", "accept_date", "supplier_id", "status"
       `;
 
-      console.log("Quotation updated successfully: ", updatedQuotation);
-      return updatedQuotation;
+      console.log("Quotation updated successfully: ", updatedQuotation[0]);
+      return updatedQuotation[0];
     } catch (error) {
       console.error("Error updateing quotation: ", error);
       return { error: "Failed to update quotation" };
@@ -243,9 +179,9 @@ app.delete(
   async ({ body }) => {
     try {
       const deletedQuotation: any = await db.$executeRaw`
-        DELETE FROM quotation
-        WHERE id = ${body.id}
-        RETURNING id;
+        DELETE FROM "quotation"
+        WHERE "id" = ${body.id}
+        RETURNING "id";
       `;
 
       console.log("Quotation deleted successfully: ", deletedQuotation);

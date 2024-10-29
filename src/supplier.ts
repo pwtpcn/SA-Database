@@ -25,17 +25,16 @@ app.get(
 app.post(
   "/getByID",
   async ({ body }) => {
-    try{
-      const selectdUser = await db.$queryRaw`
+    try {
+      const selectedSupplier: any = await db.$queryRaw`
       SELECT "supplier_id", "supplier_name", "tax_number", "user_id"
       FROM "supplier" 
       WHERE "supplier_id" = ${body.supplier_id} 
       LIMIT 1
       `;
-  
-      console.log("Get supplier successfully: ", selectdUser);
-      return selectdUser;
 
+      console.log("Get supplier successfully: ", selectedSupplier[0]);
+      return selectedSupplier[0];
     } catch (error) {
       console.error("Error getting supplier by ID: ", error);
       return { error: "Fail to get supplier by ID" };
@@ -78,7 +77,7 @@ app.post(
       supplier_name: t.String(),
       tax_number: t.Number({
         minimum: 1000000000000,
-        maximum: 9999999999999
+        maximum: 9999999999999,
       }),
       user_id: t.String(),
     }),
@@ -93,10 +92,10 @@ app.put(
   async ({ body }) => {
     try {
       interface Supplier {
-        supplier_id: number,
-        supplier_name: string,
-        tax_number: number,
-        user_id: string
+        supplier_id: number;
+        supplier_name: string;
+        tax_number: number;
+        user_id: string;
       }
 
       const supplierList: Supplier[] = await db.$queryRaw`
@@ -106,7 +105,7 @@ app.put(
       LIMIT 1;
       `;
       const supplier = supplierList[0];
-      
+
       const updatedSupplier: any = await db.$queryRaw`
       UPDATE "supplier"
       SET "supplier_name" = ${body.supplier_name || supplier.supplier_name}, 
