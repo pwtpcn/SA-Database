@@ -8,14 +8,7 @@ app.get(
   "/getAllDeliveryNote",
   async () => {
     const deliveryList = await db.$queryRaw`
-    SELECT "id",
-    "quotation_id",
-    "sender_name",
-    "purchase_date",
-    "reciever_signature",
-    "reciever_name",
-    "receipt_id",
-    "supplier_id"
+    SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id"
     FROM "delivery_note"
     `;
     return deliveryList;
@@ -32,7 +25,7 @@ app.post(
   async ({ body }) => {
     try {
       const selectedNote: any = await db.$queryRaw`
-      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id"
       FROM "delivery_note"
       WHERE "id" = ${body.id}
       LIMIT 1
@@ -60,19 +53,18 @@ app.post(
   async ({ body }) => {
     try {
       const note = await db.$queryRaw`
-      INSERT INTO "delivery_note" ("quotation_id", "sender_name", "supplier_id")
+      INSERT INTO "delivery_note" ("quotation_id", "sender_name")
       VALUES (
         ${body.quotation_id}, 
-        ${body.sender_name},
-        ${body.supplier_id}
+        ${body.sender_name}
         )
-      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id"
       `;
 
       console.log("Delivery note inserted successfully: ", note);
       return { message: "Delivery note inserted successfully", note };
     } catch (error) {
-      console.error("Error insrting delivery note: ", error);
+      console.error("Error inserting delivery note: ", error);
       return { error: "Failed to insert delivery note" };
     }
   },
@@ -80,7 +72,6 @@ app.post(
     body: t.Object({
       quotation_id: t.Number(),
       sender_name: t.String(),
-      supplier_id: t.Number(),
     }),
     detail: {
       tags: ["DeliveryNote"],
@@ -100,11 +91,10 @@ app.put(
         reciever_signature: string,
         reciever_name: string,
         receipt_id: number,
-        supplier_id: number
       }
 
       const noteList: DeliveryNote[] = await db.$queryRaw`
-      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id"
       FROM "delivery_note"
       WHERE "id" = ${body.id}
       LIMIT 1
@@ -118,10 +108,9 @@ app.put(
       "purchase_date" = ${body.purchase_date || delivary_note.purchase_date},
       "reciever_signature" = ${body.reciever_signature || delivary_note.reciever_signature},
       "reciever_name" = ${body.reciever_name || delivary_note.reciever_name},
-      "receipt_id" = ${body.receipt_id || delivary_note.receipt_id},
-      "supplier_id" = ${body.supplier_id || delivary_note.supplier_id}
+      "receipt_id" = ${body.receipt_id || delivary_note.receipt_id}
       WHERE "id" = ${body.id}
-      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id"
       `;
 
       console.log("Delivery note updated successfully:", updatedNote[0]);
@@ -140,7 +129,6 @@ app.put(
       reciever_signature: t.Optional(t.String()),
       reciever_name: t.Optional(t.String()),
       receipt_id: t.Optional(t.Number()),
-      supplier_id: t.Optional(t.Number()),
     }),
     detail: {
       tags: ["DeliveryNote"],

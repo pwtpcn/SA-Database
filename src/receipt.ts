@@ -8,11 +8,7 @@ app.get(
   "/getAllReciept",
   async () => {
     const receiptList = await db.$queryRaw`
-    SELECT "id",
-    "receipt_date",
-    "total_price",
-    "supplier_id",
-    "confirmation"
+    SELECT "id", "receipt_date", "total_price", "confirmation"
     FROM "receipt"`;
     return receiptList;
   },
@@ -28,7 +24,7 @@ app.post(
   async ({body}) => {
     try {
       const selectedReceipt = await db.$queryRaw`
-      SELECT "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      SELECT "id", "receipt_date", "total_price", "confirmation"
       FROM "receipt"
       WHERE "id" = ${body.id}
       LIMIT 1
@@ -57,13 +53,12 @@ app.post(
   async ({ body }) => {
     try {
       const receipt = await db.$queryRaw`
-      INSERT INTO "receipt" ("receipt_date", "total_price", "supplier_id")
+      INSERT INTO "receipt" ("receipt_date", "confirmation")
       VALUES (
         NOW() AT TIME ZONE 'Asia/Bangkok',
-        ${body.total_price},
-        ${body.supplier_id}
+        ${body.confirmation}
         )
-      RETURNING "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      RETURNING "id", "receipt_date", "total_price", "confirmation"
       `;
 
       console.log("Receipt inserted successfully: ", receipt);
@@ -75,8 +70,7 @@ app.post(
   },
   {
     body: t.Object({
-      total_price: t.Number(),
-      supplier_id: t.Number(),
+      confirmation: t.String()
     }),
     detail: {
       tags: ["Receipt"],
@@ -92,25 +86,31 @@ app.put(
         id: number, 
         receipt_date: Date, 
         total_price: number, 
-        supplier_id: number, 
         confirmation: string
       }
 
       const receiptList: Receipt[] = await db.$queryRaw`
-      SELECT "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      SELECT "id", "receipt_date", "total_price", "confirmation"
       FROM "receipt"
       WHERE "id" = ${body.id}
       LIMIT 1
       `;
       const receipt = receiptList[0];
 
+      const total_priceResult:any = await db.$queryRaw`
+      SELECT SUM("total_price")
+      FROM "delivery_note" 
+      JOIN "quotation" ON "delivery_note"."quotation_id" = "quotation"."id" 
+      WHERE "receipt_id" = ${body.id}
+      `;
+      const total_price = total_priceResult[0]?.sum || receipt.total_price;
+
       const updatedReceipt: any = await db.$queryRaw`
       UPDATE "receipt"
-      SET "total_price" = ${body.total_price || receipt.total_price},
-      "supplier_id" = ${body.supplier_id || receipt.supplier_id},
+      SET "total_price" = ${total_price},
       "confirmation" = ${body.confirmation || receipt.confirmation}
       WHERE "id" = ${body.id}
-      RETURNING "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      RETURNING "id", "receipt_date", "total_price", "confirmation"
       `;
 
       console.log("Receipt updated successfully:", updatedReceipt);
@@ -124,8 +124,6 @@ app.put(
     body: t.Object({
       id: t.Number(),
       receipt_date: t.Optional(t.Date()),
-      total_price: t.Optional(t.Number()),
-      supplier_id: t.Optional(t.Number()),
       confirmation: t.Optional(t.String()),
     }),
 

@@ -11,21 +11,17 @@ model receipt {
   id            Int             @id @default(autoincrement())
   receipt_date  DateTime        @db.Timestamp(6)
   total_price   Float           @db.Real
-  supplier_id   Int?
   confirmation  String?         @db.VarChar(80)
   delivery_note delivery_note[]
-  supplier      supplier?       @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplier")
 }
 
 model supplier {
-  supplier_id   Int             @id @default(autoincrement())
-  supplier_name String          @db.VarChar(80)
-  tax_number    Decimal         @unique @db.Decimal(13, 0)
-  user_id       String?         @db.Uuid
-  delivery_note delivery_note[]
+  supplier_id   Int         @id @default(autoincrement())
+  supplier_name String      @db.VarChar(80)
+  tax_number    Decimal     @unique @db.Decimal(13, 0)
+  user_id       String?     @db.Uuid
   quotation     quotation[]
-  receipt       receipt[]
-  user          user?           @relation(fields: [user_id], references: [uuid], map: "user_id")
+  user          user?       @relation(fields: [user_id], references: [uuid], map: "user_id")
 }
 
 model quotation {
@@ -51,10 +47,8 @@ model delivery_note {
   reciever_signature String?    @db.VarChar(80)
   reciever_name      String?    @db.VarChar(80)
   receipt_id         Int?
-  supplier_id        Int?
   quotation          quotation? @relation(fields: [quotation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   receipt            receipt?   @relation(fields: [receipt_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  supplier           supplier?  @relation(fields: [supplier_id], references: [supplier_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supplier")
 }
 
 model user {
