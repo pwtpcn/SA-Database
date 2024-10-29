@@ -3,103 +3,49 @@ import db from "./db";
 
 const app = new Elysia({ prefix: "/reciept" });
 
-// app.get(
-//   "/get",
-//   async () => {
-//     const receiptList = await db.receipt.findMany();
-//     return receiptList;
-//   },
-//   {
-//     detail: {
-//       tags: ["Receipt"],
-//     },
-//   }
-// );
-
-// app.post(
-//   "/post",
-//   async ({ body }) => {
-//     const receipt = await db.receipt.create({
-//       data: body,
-//     });
-//     return receipt;
-//   },
-//   {
-//     body: t.Object({
-//       receipt_date: t.Date(),
-//       total_price: t.Number({
-//         minimum: 0,
-//       }),
-//     }),
-//     detail: {
-//       tags: ["Receipt"],
-//     },
-//   }
-// );
-
-// app.put(
-//   "/put",
-//   async ({ body }) => {
-//     const receipt = await db.receipt.update({
-//       where: {
-//         id: body.id,
-//       },
-//       data: body,
-//     });
-//     return receipt;
-//   },
-//   {
-//     body: t.Object({
-//       id: t.Number(),
-//       receipt_date: t.Optional(t.Date()),
-//       total_price: t.Optional(
-//         t.Number({
-//           minimum: 0,
-//         })
-//       ),
-//       supplier_id: t.Optional(t.Number()),
-//       confirmation: t.Optional(t.String()),
-//     }),
-//     detail: {
-//       tags: ["Receipt"],
-//     },
-//   }
-// );
-
-// app.delete(
-//   "/delete",
-//   async ({ body }) => {
-//     const receipt = db.receipt.delete({
-//       where: {
-//         id: body.id,
-//       },
-//     });
-//     return receipt;
-//   },
-//   {
-//     body: t.Object({
-//       id: t.Number(),
-//     }),
-//     detail: {
-//       tags: ["Receipt"],
-//     },
-//   }
-// );
-
 // Raw Query //
 app.get(
-  "/get",
+  "/getAllReciept",
   async () => {
     const receiptList = await db.$queryRaw`
-    SELECT id,
-    receipt_date,
-    total_price,
-    supplier_id,
-    confirmation
-    FROM receipt`;
+    SELECT "id",
+    "receipt_date",
+    "total_price",
+    "supplier_id",
+    "confirmation"
+    FROM "receipt"`;
     return receiptList;
   },
   {
+    detail: {
+      tags: ["Receipt"],
+    },
+  }
+);
+
+app.post(
+  "/getByID",
+  async ({body}) => {
+    try {
+      const selectedReceipt = await db.$queryRaw`
+      SELECT "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      FROM "receipt"
+      WHERE "id" = ${body.id}
+      LIMIT 1
+      `;
+
+      console.log("Get receipt successfully: ", selectedReceipt);
+      return selectedReceipt;
+    } catch (error) {
+      console.error("Error getting receipt by ID: ", error);
+      return { error: "Fail to get receipt by ID" };
+    }
+  },
+  {
+    body: t.Object({
+      id: t.Number(),
+    }),
+
     detail: {
       tags: ["Receipt"],
     },
@@ -111,13 +57,13 @@ app.post(
   async ({ body }) => {
     try {
       const receipt = await db.$queryRaw`
-      INSERT INTO receipt (receipt_date, total_price, supplier_id)
+      INSERT INTO "receipt" ("receipt_date", "total_price", "supplier_id")
       VALUES (
-        ${body.receipt_date}, 
+        NOW() AT TIME ZONE 'Asia/Bangkok',
         ${body.total_price},
         ${body.supplier_id}
         )
-      RETURNING id, receipt_date, total_price, supplier_id, confirmation
+      RETURNING "id", "receipt_date", "total_price", "supplier_id", "confirmation"
       `;
 
       console.log("Receipt inserted successfully: ", receipt);
@@ -129,7 +75,6 @@ app.post(
   },
   {
     body: t.Object({
-      receipt_date: t.Date(),
       total_price: t.Number(),
       supplier_id: t.Number(),
     }),
@@ -143,31 +88,29 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const updates = [];
-
-      if (body.receipt_date !== undefined) {
-        updates.push(`receipt_date = ${body.receipt_date}`);
+      interface Receipt {
+        id: number, 
+        receipt_date: Date, 
+        total_price: number, 
+        supplier_id: number, 
+        confirmation: string
       }
 
-      if (body.total_price !== undefined) {
-        updates.push(`total_price = ${body.total_price}`);
-      }
+      const receiptList: Receipt[] = await db.$queryRaw`
+      SELECT "id", "receipt_date", "total_price", "supplier_id", "confirmation"
+      FROM "receipt"
+      WHERE "id" = ${body.id}
+      LIMIT 1
+      `;
+      const receipt = receiptList[0];
 
-      if (body.supplier_id !== undefined) {
-        updates.push(`supplier_id = ${body.supplier_id}`);
-      }
-
-      if (body.confirmation !== undefined) {
-        updates.push(`confirmation = ${body.confirmation}`);
-      }
-
-      const updateFields = updates.join(", ");
-
-      const updatedReceipt: any = await db.$executeRaw`
-      UPDATE receipt
-      SET ${updateFields}
-      WHERE id = ${body.id}
-      RETURNING id, receipt_date, total_price, supplier_id, confirmation
+      const updatedReceipt: any = await db.$queryRaw`
+      UPDATE "receipt"
+      SET "total_price" = ${body.total_price || receipt.total_price},
+      "supplier_id" = ${body.supplier_id || receipt.supplier_id},
+      "confirmation" = ${body.confirmation || receipt.confirmation}
+      WHERE "id" = ${body.id}
+      RETURNING "id", "receipt_date", "total_price", "supplier_id", "confirmation"
       `;
 
       console.log("Receipt updated successfully:", updatedReceipt);
@@ -197,9 +140,9 @@ app.delete(
   async ({ body }) => {
     try {
       const deletedReceipt: any = await db.$queryRaw`
-      DELETE FROM receipt
+      DELETE FROM "receipt"
       WHERE id = ${body.id}
-      RETURNING id
+      RETURNING "id"
       `;
 
       console.log("Receipt deleted successfully: ", deletedReceipt);
