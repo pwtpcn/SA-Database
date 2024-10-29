@@ -3,91 +3,16 @@ import db from "./db";
 
 const app = new Elysia({ prefix: "/supplier" });
 
-// app.get(
-//   "/get",
-//   async () => {
-//     const supplierList = await db.supplier.findMany();
-//     return supplierList;
-//   },
-//   {
-//     detail: {
-//       tags: ["Supplier"],
-//     },
-//   }
-// );
-
-// app.post(
-//   "/post",
-//   async ({ body }) => {
-//     const supplier = await db.supplier.create({
-//       data: body,
-//     });
-//     return supplier;
-//   },
-//   {
-//     body: t.Object({
-//       supplier_name: t.String(),
-//       tax_number: t.Number(),
-//     }),
-//     detail: {
-//       tags: ["Supplier"],
-//     },
-//   }
-// );
-
-// app.put(
-//   "/put",
-//   async ({ body }) => {
-//     const supplier = await db.supplier.update({
-//       where: {
-//         supplier_id: body.supplier_id,
-//       },
-//       data: body,
-//     });
-//     return supplier;
-//   },
-//   {
-//     body: t.Object({
-//       supplier_id: t.Number(),
-//       supplier_name: t.Optional(t.String()),
-//       tax_number: t.Optional(t.Number()),
-//     }),
-//     detail: {
-//       tags: ["Supplier"],
-//     },
-//   }
-// );
-
-// app.delete(
-//   "/delete",
-//   async ({ body }) => {
-//     const supplier = await db.supplier.delete({
-//       where: {
-//         supplier_id: body.supplier_id,
-//       },
-//     });
-//     return supplier;
-//   },
-//   {
-//     body: t.Object({
-//       supplier_id: t.Number(),
-//     }),
-//     detail: {
-//       tags: ["Supplier"],
-//     },
-//   }
-// );
-
 // Raw Query //
 app.get(
-  "/get",
+  "/getAllSupplier",
   async () => {
     const supplierList = await db.$queryRaw`
-    SELECT supplier_id,
-    supplier_name,
-    tax_number,
-    user_id
-    FROM supplier`;
+    SELECT "supplier_id",
+    "supplier_name",
+    "tax_number",
+    "user_id"
+    FROM "supplier"`;
     return supplierList;
   },
   {
@@ -98,21 +23,51 @@ app.get(
 );
 
 app.post(
+  "/getByID",
+  async ({ body }) => {
+    try{
+      const selectdUser = await db.$queryRaw`
+      SELECT "supplier_id", "supplier_name", "tax_number", "user_id"
+      FROM "supplier" 
+      WHERE "supplier_id" = ${body.supplier_id} 
+      LIMIT 1
+      `;
+  
+      console.log("Get supplier successfully: ", selectdUser);
+      return selectdUser;
+
+    } catch (error) {
+      console.error("Error getting supplier by ID: ", error);
+      return { error: "Fail to get supplier by ID" };
+    }
+  },
+  {
+    body: t.Object({
+      supplier_id: t.Number(),
+    }),
+
+    detail: {
+      tags: ["Supplier"],
+    },
+  }
+);
+
+app.post(
   "/post",
   async ({ body }) => {
     try {
-      const supplier = await db.$queryRaw`
-      INSERT INTO supplier (supplier_name, tax_number, user_id)
+      const insertSupplier = await db.$queryRaw`
+      INSERT INTO "supplier" ("supplier_name", "tax_number", "user_id")
       VALUES (
         ${body.supplier_name}, 
         ${body.tax_number},
-        ${body.user_id}
+        ${body.user_id}::uuid
         )
-      RETURNING supplier_id, supplier_name, tax_number, user_id
+      RETURNING "supplier_id", "supplier_name", "tax_number", "user_id"
       `;
 
-      console.log("Supplier inserted successfully: ", supplier);
-      return { message: "Supplier inserted successfully", supplier };
+      console.log("Supplier inserted successfully: ", insertSupplier);
+      return { message: "Supplier inserted successfully", insertSupplier };
     } catch (error) {
       console.error("Error insrting supplier: ", error);
       return { error: "Failed to insert supplier" };
@@ -121,8 +76,11 @@ app.post(
   {
     body: t.Object({
       supplier_name: t.String(),
-      tax_number: t.Number(),
-      user_id: t.String()
+      tax_number: t.Number({
+        minimum: 1000000000000,
+        maximum: 9999999999999
+      }),
+      user_id: t.String(),
     }),
     detail: {
       tags: ["Supplier"],
@@ -134,27 +92,28 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const updates = [];
-
-      if (body.supplier_name !== undefined) {
-        updates.push(`supplier_name = ${body.supplier_name}`);
+      interface Supplier {
+        supplier_id: number,
+        supplier_name: string,
+        tax_number: number,
+        user_id: string
       }
 
-      if (body.tax_number !== undefined) {
-        updates.push(`tax_number = ${body.tax_number}`);
-      }
-
-      if (body.user_id !== undefined) {
-        updates.push(`user_id = ${body.user_id}`);
-      }
-
-      const updateFields = updates.join(", ");
-
-      const updatedSupplier: any = await db.$executeRaw`
-      UPDATE supplier
-      SET ${updateFields}
-      WHERE supplier_id = ${body.supplier_id}
-      RETURNING supplier_id, supplier_name, tax_number, user_id
+      const supplierList: Supplier[] = await db.$queryRaw`
+      SELECT "supplier_id", "supplier_name", "tax_number", "user_id"
+      FROM "supplier"
+      WHERE "supplier_id" = ${body.supplier_id}
+      LIMIT 1;
+      `;
+      const supplier = supplierList[0];
+      
+      const updatedSupplier: any = await db.$queryRaw`
+      UPDATE "supplier"
+      SET "supplier_name" = ${body.supplier_name || supplier.supplier_name}, 
+      "tax_number" = ${body.tax_number || supplier.tax_number}, 
+      "user_id" = ${body.user_id || supplier.user_id}::uuid
+      WHERE "supplier_id" = ${body.supplier_id}
+      RETURNING "supplier_id", "supplier_name", "tax_number", "user_id";
       `;
 
       console.log("Supplier updated successfully:", updatedSupplier);
@@ -169,7 +128,7 @@ app.put(
       supplier_id: t.Number(),
       supplier_name: t.Optional(t.String()),
       tax_number: t.Optional(t.Number()),
-      user_id: t.Optional(t.String())
+      user_id: t.Optional(t.String()),
     }),
     detail: {
       tags: ["Supplier"],
@@ -182,9 +141,9 @@ app.delete(
   async ({ body }) => {
     try {
       const deletedSupplier: any = await db.$queryRaw`
-      DELETE FROM supplier
-      WHERE supplier_id = ${body.supplier_id}
-      RETURNING supplier_id
+      DELETE FROM "supplier"
+      WHERE "supplier_id" = ${body.supplier_id}
+      RETURNING "supplier_id", "supplier_name"
       `;
 
       console.log("Supplier deleted successfully: ", deletedSupplier);

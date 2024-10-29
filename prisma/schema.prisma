@@ -20,7 +20,7 @@ model receipt {
 model supplier {
   supplier_id   Int             @id @default(autoincrement())
   supplier_name String          @db.VarChar(80)
-  tax_number    Decimal         @db.Decimal(13, 0)
+  tax_number    Decimal         @unique @db.Decimal(13, 0)
   user_id       String?         @db.Uuid
   delivery_note delivery_note[]
   quotation     quotation[]
