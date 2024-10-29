@@ -178,7 +178,7 @@ app.delete(
   "/delete",
   async ({ body }) => {
     try {
-      const deletedQuotation: any = await db.$executeRaw`
+      const deletedQuotation: any = await db.$queryRaw`
         DELETE FROM "quotation"
         WHERE "id" = ${body.id}
         RETURNING "id";

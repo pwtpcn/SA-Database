@@ -3,103 +3,20 @@ import db from "./db";
 
 const app = new Elysia({ prefix: "/delivery" });
 
-// app.get(
-//   "/get",
-//   async () => {
-//     const deliveryList = await db.delivery_note.findMany();
-//     return deliveryList;
-//   },
-//   {
-//     detail: {
-//       tags: ["DeliveryNote"],
-//     },
-//   }
-// );
-
-// app.post(
-//   "/post",
-//   async ({ body }) => {
-//     const note = await db.delivery_note.create({
-//       data: body,
-//     });
-//     return note;
-//   },
-//   {
-//     body: t.Object({
-//       quotation_id: t.Number(),
-//       sender_name: t.String(),
-//       purchase_date: t.Optional(t.Date()),
-//       reciever_sign: t.Optional(t.String()),
-//       reciever_name: t.Optional(t.String()),
-//     }),
-//     detail: {
-//       tags: ["DeliveryNote"],
-//     },
-//   }
-// );
-
-// app.put(
-//   "/put",
-//   async ({ body }) => {
-//     const note = await db.delivery_note.update({
-//       where: {
-//         id: body.id,
-//       },
-//       data: body,
-//     });
-//     return note;
-//   },
-//   {
-//     body: t.Object({
-//       id: t.Number(),
-//       quotation_id: t.Optional(t.Number()),
-//       sender_name: t.Optional(t.String()),
-//       purchase_date: t.Optional(t.Date()),
-//       reciever_sign: t.Optional(t.String()),
-//       reciever_name: t.Optional(t.String()),
-//       receipt_id: t.Optional(t.Number()),
-//       supplier_id: t.Optional(t.Number()),
-//     }),
-//     detail: {
-//       tags: ["DeliveryNote"],
-//     },
-//   }
-// );
-
-// app.delete(
-//     "/delete",
-//     async ({ body }) => {
-//       const note = await db.delivery_note.delete({
-//         where: {
-//           id: body.id,
-//         },
-//       });
-//       return note;
-//     },
-//     {
-//       body: t.Object({
-//         id: t.Number(),
-//       }),
-//       detail: {
-//         tags: ["DeliveryNote"],
-//       },
-//     }
-//   );
-
 // Raw Query //
 app.get(
-  "/get",
+  "/getAllDeliveryNote",
   async () => {
     const deliveryList = await db.$queryRaw`
-    SELECT id,
-    quotation_id,
-    sender_name,
-    purchase_date,
-    reciever_signature,
-    reciever_name,
-    receipt_id,
-    supplier_id
-    FROM delivery_note
+    SELECT "id",
+    "quotation_id",
+    "sender_name",
+    "purchase_date",
+    "reciever_signature",
+    "reciever_name",
+    "receipt_id",
+    "supplier_id"
+    FROM "delivery_note"
     `;
     return deliveryList;
   },
@@ -111,17 +28,45 @@ app.get(
 );
 
 app.post(
+  "getNoteByID",
+  async ({ body }) => {
+    try {
+      const selectedNote: any = await db.$queryRaw`
+      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      FROM "delivery_note"
+      WHERE "id" = ${body.id}
+      LIMIT 1
+      `;
+
+      console.log("Get delivery note successfully: ", selectedNote[0]);
+      return selectedNote[0];
+    } catch (error) {
+      console.error("Error getting delivery note by ID: ", error);
+      return { error: "Fail to get delivery note by ID" };
+    }
+  },
+  {
+    body: t.Object({
+      id: t.Number(),
+    }),
+    detail: {
+      tags: ["DeliveryNote"],
+    },
+  }
+);
+
+app.post(
   "/post",
   async ({ body }) => {
     try {
       const note = await db.$queryRaw`
-      INSERT INTO delivery_note (quotation_id, sender_name, supplier_id)
+      INSERT INTO "delivery_note" ("quotation_id", "sender_name", "supplier_id")
       VALUES (
         ${body.quotation_id}, 
         ${body.sender_name},
         ${body.supplier_id}
         )
-      RETURNING quotation_id, sender_name, supplier_id
+      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
       `;
 
       console.log("Delivery note inserted successfully: ", note);
@@ -147,47 +92,40 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const updates = [];
-
-      if (body.quotation_id !== undefined) {
-        updates.push(`quotation_id = ${body.quotation_id}`);
+      interface DeliveryNote {
+        id: number,
+        quotation_id: number,
+        sender_name: string,
+        purchase_date: Date,
+        reciever_signature: string,
+        reciever_name: string,
+        receipt_id: number,
+        supplier_id: number
       }
 
-      if (body.sender_name !== undefined) {
-        updates.push(`sender_name = ${body.sender_name}`);
-      }
+      const noteList: DeliveryNote[] = await db.$queryRaw`
+      SELECT "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
+      FROM "delivery_note"
+      WHERE "id" = ${body.id}
+      LIMIT 1
+      `;
+      const delivary_note = noteList[0];
 
-      if (body.purchase_date !== undefined) {
-        updates.push(`purchase_date = ${body.purchase_date}`);
-      }
-
-      if (body.reciever_signature !== undefined) {
-        updates.push(`reciever_signature = ${body.reciever_signature}`);
-      }
-
-      if (body.reciever_name !== undefined) {
-        updates.push(`reciever_name = ${body.reciever_name}`);
-      }
-
-      if (body.receipt_id !== undefined) {
-        updates.push(`receipt_id = ${body.receipt_id}`);
-      }
-
-      if (body.supplier_id !== undefined) {
-        updates.push(`supplier_id = ${body.supplier_id}`);
-      }
-
-      const updateFields = updates.join(", ");
-
-      const updatedNote: any = await db.$executeRaw`
-      UPDATE delivery_note
-      SET ${updateFields}
-      WHERE id = ${body.id}
-      RETURNING id, quotation_id, sender_name, purchase_date, reciever_signature, reciever_name, receipt_id, supplier_id
+      const updatedNote: any = await db.$queryRaw`
+      UPDATE "delivery_note"
+      SET "quotation_id" = ${body.quotation_id || delivary_note.quotation_id},
+      "sender_name" = ${body.sender_name || delivary_note.sender_name},
+      "purchase_date" = ${body.purchase_date || delivary_note.purchase_date},
+      "reciever_signature" = ${body.reciever_signature || delivary_note.reciever_signature},
+      "reciever_name" = ${body.reciever_name || delivary_note.reciever_name},
+      "receipt_id" = ${body.receipt_id || delivary_note.receipt_id},
+      "supplier_id" = ${body.supplier_id || delivary_note.supplier_id}
+      WHERE "id" = ${body.id}
+      RETURNING "id", "quotation_id", "sender_name", "purchase_date", "reciever_signature", "reciever_name", "receipt_id", "supplier_id"
       `;
 
-      console.log("Delivery note updated successfully:", updatedNote);
-      return updatedNote;
+      console.log("Delivery note updated successfully:", updatedNote[0]);
+      return updatedNote[0];
     } catch (error) {
       console.error("Error updating delivery note: ", error);
       return { error: "Failed to update delivery note" };
@@ -214,10 +152,10 @@ app.delete(
   "/delete",
   async ({ body }) => {
     try {
-      const deletedNote: any = await db.$executeRaw`
-        DELETE FROM delivery_note
-        WHERE id = ${body.id}
-        RETURNING id;
+      const deletedNote: any = await db.$queryRaw`
+        DELETE FROM "delivery_note"
+        WHERE "id" = ${body.id}
+        RETURNING "id";
       `;
 
       console.log("Delivery note deleted successfully: ", deletedNote);
