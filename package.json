@@ -8,6 +8,7 @@
   "dependencies": {
     "@elysiajs/swagger": "^1.1.1",
     "@prisma/client": "5.20.0",
+    "@types/uuid": "^10.0.0",
     "elysia": "latest"
   },
   "devDependencies": {

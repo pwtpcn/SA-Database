@@ -1,5 +1,9 @@
 import { Elysia, t } from "elysia";
+import crypto from "crypto";
 import db from "./db";
+import { $, password } from "bun";
+import { join, Sql } from "@prisma/client/runtime/library";
+import { Prisma } from "@prisma/client";
 
 const app = new Elysia({ prefix: "/user" });
 
@@ -8,10 +12,10 @@ app.get(
   "/get",
   async () => {
     const userList = await db.$queryRaw`
-      SELECT uuid,
-      username,
-      priority
-      FROM user`;
+      SELECT "uuid",
+      "username",
+      "priority"
+      FROM "user"`;
     return userList;
   },
   {
@@ -22,22 +26,86 @@ app.get(
 );
 
 app.post(
+  "/getByUsername",
+  async ({ body }) => {
+    const encryptWithSalt = (password: string, salt: string): string => {
+      const hashedPassword = crypto
+        .createHash("sha256")
+        .update(password + salt)
+        .digest("hex");
+      return hashedPassword;
+    };
+
+    const username = body.username;
+
+    interface Authenticate {
+      salt: string;
+      password: string;
+    }
+
+    const authen: Authenticate[] = await db.$queryRaw`
+    SELECT "salt", "password" FROM "user" WHERE "username" = ${username} LIMIT 1
+    `;
+
+    const hashedPassword = encryptWithSalt(body.password, authen[0].salt);
+
+    if (authen[0].password === hashedPassword) {
+      return db.$queryRaw`
+      SELECT "username", "priority" FROM "user" WHERE "username" = ${username} LIMIT 1
+      `;
+    } else {
+      return JSON.stringify({
+        username: "Error authen failed",
+        priority: -1,
+      });
+    }
+  },
+  {
+    body: t.Object({
+      username: t.String(),
+      password: t.String(),
+    }),
+    detail: {
+      tags: ["User"],
+    },
+  }
+);
+
+app.post(
   "/post",
   async ({ body }) => {
     try {
-      const user = await db.$queryRaw`
-        INSERT INTO supplier (username, password, salt, priority)
-        VALUES (
-          ${body.username}, 
-          ${body.password},
-          ${body.salt},
-          ${body.priority},
-          )
-        RETURNING uuid, username, password, salt, priority
-        `;
+      const generateSalt = (length: number = 16): string => {
+        return crypto
+          .randomBytes(Math.ceil(length / 2))
+          .toString("hex")
+          .slice(0, length);
+      };
 
-      console.log("User inserted successfully: ", user);
-      return { message: "User inserted successfully", user };
+      const encryptWithSalt = (password: string, salt: string): string => {
+        const hashedPassword = crypto
+          .createHash("sha256")
+          .update(password + salt)
+          .digest("hex");
+        return hashedPassword;
+      };
+
+      const salt = generateSalt();
+      const hashedPassword = encryptWithSalt(body.password, salt);
+
+      const insertUser = await db.$queryRaw`
+      INSERT INTO "user" ("username", "password", "salt", "priority")
+      VALUES (
+      ${body.username}, 
+      ${hashedPassword},
+      ${salt},
+      ${body.priority}
+      )
+      RETURNING "uuid", "username", "password", "salt", "priority";
+      `;
+
+      console.log("User inserted successfully: ", insertUser);
+      return { message: "User inserted successfully", insertUser };
     } catch (error) {
       console.error("Error insrting user: ", error);
       return { error: "Failed to insert user" };
@@ -47,7 +115,6 @@ app.post(
     body: t.Object({
       username: t.String(),
       password: t.String(),
-      salt: t.String(),
       priority: t.Number(),
     }),
     detail: {
@@ -60,32 +127,50 @@ app.put(
   "/put",
   async ({ body }) => {
     try {
-      const updates = [];
+      const generateSalt = (length: number = 16): string => {
+        return crypto
+          .randomBytes(Math.ceil(length / 2))
+          .toString("hex")
+          .slice(0, length);
+      };
 
-      if (body.username !== undefined) {
-        updates.push(`username = ${body.username}`);
+      const encryptWithSalt = (password: string, salt: string): string => {
+        const hashedPassword = crypto
+          .createHash("sha256")
+          .update(password + salt)
+          .digest("hex");
+        return hashedPassword;
+      };
+      
+      let salt = "";
+      let hashedPassword = "";
+
+      if(body.password !== undefined){
+      salt = generateSalt();
+      hashedPassword = encryptWithSalt(body.password, salt);
       }
 
-      if (body.password !== undefined) {
-        updates.push(`password = ${body.password}`);
+      interface User {
+        username: string;
+        password: string;
+        salt: string;
+        priority: number;
       }
 
-      if (body.salt !== undefined) {
-        updates.push(`salt = ${body.salt}`);
-      }
+      const userList: User[] = await db.$queryRaw`
+      SELECT "username", "password", "salt", "priority" 
+      FROM "user" 
+      WHERE "username" = ${body.old_username} 
+      LIMIT 1;
+      `;
+      const user = userList[0];
 
-      if (body.priority !== undefined) {
-        updates.push(`priority = ${body.priority}`);
-      }
-
-      const updateFields = updates.join(", ");
-
-      const updatedUser: any = await db.$executeRaw`
-        UPDATE user
-        SET ${updateFields}
-        WHERE uuid = ${body.uuid}
-        RETURNING uuid, username, password, salt, priority
-        `;
+      const updatedUser: any = await db.$queryRaw`
+      UPDATE "user" 
+      SET "username" = ${body.new_username || user.username}, "password" = ${hashedPassword || user.password}, "salt" = ${salt || user.salt}, "priority" = ${body.priority || user.priority}
+      WHERE "username" = ${body.old_username}
+      RETURNING "uuid", "username", "priority";
+      `;
 
       console.log("User updated successfully:", updatedUser);
       return updatedUser;
@@ -96,11 +181,10 @@ app.put(
   },
   {
     body: t.Object({
-        uuid: t.String(),
-        username: t.Optional(t.String()),
-        password: t.Optional(t.String()),
-        salt: t.Optional(t.String()),
-        priority: t.Optional(t.Number()),
+      old_username: t.String(),
+      new_username: t.Optional(t.String()),
+      password: t.Optional(t.String()),
+      priority: t.Optional(t.Number()),
     }),
     detail: {
       tags: ["User"],
@@ -108,14 +192,15 @@ app.put(
   }
 );
 
+
 app.delete(
   "/delete",
   async ({ body }) => {
     try {
       const deletedUser: any = await db.$queryRaw`
-        DELETE FROM user
-        WHERE uuid = ${body.uuid}
-        RETURNING uuid
+        DELETE FROM "user"
+        WHERE "username" = ${body.username}
+        RETURNING "username"
         `;
 
       console.log("User deleted successfully: ", deletedUser);
@@ -130,7 +215,7 @@ app.delete(
   },
   {
     body: t.Object({
-        uuid: t.Number(),
+      username: t.String(),
     }),
     detail: {
       tags: ["User"],
