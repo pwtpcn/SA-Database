@@ -101,7 +101,7 @@ app.put(
       SELECT SUM("total_price")
       FROM "delivery_note" 
       JOIN "quotation" ON "delivery_note"."quotation_id" = "quotation"."id" 
-      WHERE "receipt_id" = ${body.id}
+      WHERE "receipt_id" = ${body.id} AND purchase_date > '1900-01-01T00:00:00Z'
       `;
       const total_price = total_priceResult[0]?.sum || receipt.total_price;
 
