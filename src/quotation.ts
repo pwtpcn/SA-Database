@@ -136,6 +136,8 @@ app.put(
         total_price = body.unit * quotation.price;
       } else if(body.unit === undefined && body.price !== undefined) {
         total_price = quotation.unit * body.price;
+      } else if(body.unit === undefined && body.price === undefined) {
+        total_price = quotation.unit * quotation.price;
       }
 
       const updatedQuotation: any = await db.$queryRaw`
