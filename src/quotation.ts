@@ -130,14 +130,14 @@ app.put(
       const quotation = quotationList[0];
 
       let total_price = 0;
-      if(body.unit !== undefined && body.price !== undefined) {
+      if(body.unit !== undefined && body.price !== undefined) { //both new
         total_price = body.unit * body.price;
       } else if(body.unit !== undefined && body.price === undefined) {
         total_price = body.unit * quotation.price;
       } else if(body.unit === undefined && body.price !== undefined) {
         total_price = quotation.unit * body.price;
-      } else if(body.unit === undefined && body.price === undefined) {
-        total_price = quotation.unit * quotation.price;
+      } else {
+        total_price = quotation.total_price;
       }
 
       const updatedQuotation: any = await db.$queryRaw`
@@ -147,6 +147,7 @@ app.put(
       "total_price" = ${total_price},
       "factory_sign" = ${body.factory_sign || quotation.factory_sign},
       "supplier_sign" = ${body.supplier_sign || quotation.supplier_sign},
+      "creation_date" =${body.creation_date || quotation.creation_date},
       "accept_date" = ${body.accept_date || quotation.accept_date},
       "status" = ${Prisma.sql`${body.status || quotation.status}::"QuotationStatus"`}
       WHERE "id" = ${body.id}
@@ -167,6 +168,7 @@ app.put(
       price: t.Optional(t.Number()),
       factory_sign: t.Optional(t.String()),
       supplier_sign: t.Optional(t.String()),
+      creation_date: t.Optional(t.Date()),
       accept_date: t.Optional(t.Date()),
       status: t.Optional(t.Enum(QuotationStatus)),
     }),
