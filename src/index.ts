@@ -5,6 +5,7 @@ import receipt from "./receipt";
 import quotation from "./quotation";
 import user from "./user";
 import delivery_note from "./delivery_note";
+import middleware from "./middleware";
 
 const app = new Elysia();
 app.use(
@@ -23,6 +24,7 @@ app.use(
   })
 );
 
+app.use(middleware);
 app.use(supplier);
 app.use(receipt);
 app.use(quotation);
